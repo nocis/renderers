@@ -23,7 +23,11 @@ struct NormalIntegrator : Integrator {
 
         // HINT: Use the scene.bvh->intersect method. It's definition is in src/accel.h
         // TODO(A1): Implement this
-
+        SurfaceInteraction hitInfo;
+        if (scene.bvh->intersect(ray, hitInfo))
+            color = glm::abs(hitInfo.frameNs.n);
+        else
+            color = v3f(0.f, 0.f, 0.f);
         return color;
     }
 };

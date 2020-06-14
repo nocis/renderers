@@ -132,7 +132,7 @@ void Renderer::render() {
                 break;
             }
             renderpass->render();
-            SDL_GL_SwapWindow(renderpass->window);
+            SDL_GL_SwapWindow( renderpass->window );
         }
     } else {
         /**
@@ -146,6 +146,76 @@ void Renderer::render() {
 		 * HINT: All configuration options and camera properties can be found in object `scene.config`.
          */
         // TODO(A1): Implement this
+
+        // camera parameters
+        // coordinate origin point position first, than perform basis transformation(camera uvw basis at origin point)
+        // lookat view matrix: basis transformation matrix * translation matrix ( * camera space position), world to camera
+
+        // Do not require persipective transformation in ray tracing.
+        // sphere to plane is not a conformal mapping, which causes stretching
+
+        // at, up is directions! not points
+        glm::vec3 at = scene.config.camera.at;
+        glm::vec3 eye = scene.config.camera.o;
+        glm::vec3 up = scene.config.camera.up;
+        // x point right, y point up, z point out
+        // negative direction -> inverse translation
+        // orthogonal transpose -> inverse basis transformation
+        // very important! translation is meaningless to vector, which implicit homogeneous w coordinate is zero
+        // it also means we only require inverse basis transformation to transform a vector from camera to world!!!
+        // so using transpose of lookup matrix instead of inverse can save computations.
+        glm::mat4 viewMatrix = glm::lookAt( eye, at, up );
+        // clear RGB buffer
+        integrator->rgb->clear();
+
+        // width of view plane
+        float fov = scene.config.camera.fov;
+        float distance = 1.0;
+        float width = tanf( fov / 360 * M_PI ) * distance * 2;
+        float height = scene.config.height / scene.config.width * width;
+
+        //sampler
+        int divideNum = 4;
+        int sqrtDivideNum = 2;
+        Sampler* sampler = new Sampler( (unsigned)time(NULL) );
+
+#ifdef NDEBUG // Running in release mode - Use threads, start, end, *func
+        ThreadPool::ParallelFor(0, scene.config.height, [&] (int y)
+        {
+#else   // Running in debug mode - Don't use threads
+        ThreadPool::SequentialFor(0, scene.config.height, [&](int y)
+        {
+#endif
+            // Your code here
+            // for each pixel, y is paralleled
+            for (size_t x = 0; x < scene.config.width; x++)
+            {
+                glm::fvec3 color(0, 0, 0);
+                // compute pixel center pos, start from left top
+                float xCenterPos = 0 +  width * (x - scene.config.width / 2.0 + 0.5) / scene.config.width;
+                float yCenterPos = 0 +  height * (scene.config.height - y - scene.config.height / 2.0 + 0.5) / scene.config.height;
+
+                for (int i = 0; i < scene.config.spp - 1; i++)
+                {
+                    float xoffset = (i % sqrtDivideNum - sqrtDivideNum / 2.0 + 0.5) / sqrtDivideNum * width / scene.config.width;
+                    float yoffset = (i / sqrtDivideNum % sqrtDivideNum - sqrtDivideNum / 2.0 + 0.5) / sqrtDivideNum * height / scene.config.height;
+                    glm::fvec2 r2 = sampler->next2D();
+                    float xjitter = (r2[0] - 0.5) / sqrtDivideNum * width / scene.config.width;
+                    float yjitter = (r2[1] - 0.5) / sqrtDivideNum * height / scene.config.height;
+
+                    float xSamplePos = xCenterPos + xoffset + xjitter;
+                    float ySamplePos = yCenterPos + yoffset + yjitter;
+
+                    glm::fvec3 rayDirection = normalize( glm::fvec3( transpose(viewMatrix) * glm::fvec4( xSamplePos, ySamplePos, -distance, 0 ) ) );
+                    Ray ray = Ray( scene.config.camera.o, rayDirection );
+                    color += integrator->render( ray, *sampler ) / scene.config.spp;
+                }
+                glm::fvec3 rayDirection = normalize( glm::fvec3( transpose(viewMatrix) * glm::fvec4( xCenterPos, yCenterPos, -distance, 0 ) ) );
+                Ray ray = Ray( scene.config.camera.o, rayDirection );
+                color += integrator->render( ray, *sampler ) / scene.config.spp;
+                integrator->rgb->data[ y * scene.config.width + x ] = color;
+            }
+        });
     }
 }
 
