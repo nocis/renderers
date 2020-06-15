@@ -89,6 +89,13 @@ struct NormalPass : RenderPass {
              * 3) Bind vertex array to 0.
              */
             // TODO(A1): Implement this
+
+            // A Vertex Array Object allows us to define the memory layout of the attributes in the VBO.
+            // One VBO is assigned to each VAO.
+
+            glBindVertexArray( object.vao );
+            glDrawArrays( GL_TRIANGLES,0, object.nVerts );
+            glBindVertexArray( 0 );
         }
 
         RenderPass::render();

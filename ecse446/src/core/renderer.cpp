@@ -126,11 +126,13 @@ void Renderer::render() {
         while(true)
         {
             SDL_Event event;
-            SDL_PollEvent(&event);
+            SDL_PollEvent( &event );
             if ( event.type == SDL_QUIT )
             {
                 break;
             }
+            else
+                renderpass->updateCamera( event );
             renderpass->render();
             SDL_GL_SwapWindow( renderpass->window );
         }

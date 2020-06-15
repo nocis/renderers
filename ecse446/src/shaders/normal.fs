@@ -15,4 +15,5 @@ out vec3 color;
 void main()
 {
     // TODO(A1): Implement this
+    color = abs(vNormal);
 }
