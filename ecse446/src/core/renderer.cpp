@@ -123,6 +123,43 @@ void Renderer::render() {
          * 3) Output the rendered image into the GUI window using SDL_GL_SwapWindow(renderpass->window).
          */
         // TODO(A1): Implement this
+        // Model matrix: model -> world
+        // View : world -> camera
+        // Projection : camera -> CVV (cube)
+        // divide w : CVV -> NDC      (-1,1)
+        // viewport : NDC -> screen
+
+        // OGL realtime pipeline:
+        // 1. initOpenGL
+        // 2. initWindow
+        // 3. Create shader (vs,fs)
+        // 4. Create uniforms (mvp normal)
+        // 5. Create vertex buffers (VAO VBO) FOR each object
+
+        // A Vertex Buffer Object is an OpenGL data buffer (using GPU's memory) that is typically
+        // used to store vertex attributes, such as the position, normal vector and color of each vertex
+        // (of each triangle and of each object) in your scene.
+        // The vertex positions are typically prescribed in object space. A Vertex Array Object allows
+        // us to define the memory layout of the attributes in the VBO.
+        // One VBO is assigned to each VAO.
+        // You can query the ID assigned to the VBO and VAO of each object using their GLObject variables.
+
+        // VAO: bunch of DATA for a pointer per object
+        // VBO: layout for indexing VAO
+
+        // render stage :
+
+        // 6. enable shader created and compiled before
+        // 7. Update camera
+        // 8. Pass uniforms
+        // 9. Draw
+        //     1) Bind vertex array of current object.
+        //     2) Draw its triangles.
+        //     3) Bind vertex array to 0.
+
+        // 10. clean up : delete VAO and VBO for each object
+
+
         while(true)
         {
             SDL_Event event;
@@ -173,13 +210,14 @@ void Renderer::render() {
         // width of view plane
         float fov = scene.config.camera.fov;
         float distance = 1.0;
-        float width = tanf( fov / 360 * M_PI ) * distance * 2;
-        float height = scene.config.height / scene.config.width * width;
+        float height = tanf( fov / 360.0 * M_PI ) * distance * 2;
+        float width = scene.config.width * 1.0 / scene.config.height * height;
+        // donot know why using aspectRatio * fovScale as width
 
         //sampler
         int divideNum = 4;
         int sqrtDivideNum = 2;
-        Sampler* sampler = new Sampler( (unsigned)time(NULL) );
+        Sampler* sampler;
 
 #ifdef NDEBUG // Running in release mode - Use threads, start, end, *func
         ThreadPool::ParallelFor(0, scene.config.height, [&] (int y)
@@ -188,6 +226,8 @@ void Renderer::render() {
         ThreadPool::SequentialFor(0, scene.config.height, [&](int y)
         {
 #endif
+            // thread safe random
+            sampler = new Sampler( 47567 + y );
             // Your code here
             // for each pixel, y is paralleled
             for (size_t x = 0; x < scene.config.width; x++)

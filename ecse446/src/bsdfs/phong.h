@@ -64,8 +64,58 @@ struct PhongBSDF : BSDF {
 
     v3f eval(const SurfaceInteraction& i) const override {
         v3f val(0.f);
+        // 1. reflectivity/albedo map == color map
+        //    BRDF: function about albedo!!!!!!
+        //
+        //    shade = Radiance of out light
+        //          = projected irradiance ( total input light energy : light color * cosTheta) * BRDF( evaluated for special in and out light path )
+        //
+        // 2. BRDF normalization: FOR ENERGY CONSERVATION!!
+        //    BRDF                                  : irradiance reflection rate on single direction!
+        //    directional-hemispherical reflectance : irradiance reflection rate on hemisphere( total )!
+        //
+        // 3. directional-hemispherical reflectance : hemispherical INTEGRATION of BRDF on normal direction projection
+        //    directional-hemispherical reflectance should LESS EQUAL to material color( ENERGY CONSERVATION )!
+        //
+        //    divide BRDF by a factor( e.g, PI )!!!!!!
+        //
+        // (Supplement) the PI in specular normalization factor usually cancelled by point light!!
+        //              Because people use the average irradiance of a spherical field for light source as light irradiance(color)!!!!
+        //              which means light color is already divided by PI;
+        //
+        //              " The version of this equation typically used in real-time rendering applications
+        //              lacks the 1/PI term. This is because real-time applications typically
+        //              factor this term into the light’s irradiance (effectively using ELk/PI as the
+        //              light property indicating color and brightness, instead of ELk ). "
+        //
+        // 4. Phong shade = (normalized diffusecolor + normalized specular) normalizefactor * BRDF * lightcolor * cosTheta( only partial input contributes to irradiance )!!!!!)
+        //
+        // 5. Normalized Phong BRDF FORMULA (same as UNITY)
+        //    diffuse + specular
+        //    BRDF = fr(x,wi,wo) = fr,d(x,wi,wo) + fr,s(x,wi,wr)
+        //         = ρd/pi + ρs(n+2)/2pi * max(0, pow(cos(r,v), n))
+        //
+        // http://www.farbrausch.de/~fg/stuff/phong.pdf : for why not n+1?
 
+        // 6. reflection dir : r = 2|l|(n·l)n - l
         // TODO(A2): Implement this
+
+
+        // wo : view vector
+        // reflect(wi)  : light reflectance
+        float exp = exponent->eval(worldData, i);
+        v3f diffuseColor = diffuseReflectance->eval(worldData, i) * scale;
+        v3f specularColor = specularReflectance->eval(worldData, i) * scale;
+        // energy conservation : scale, max energy(specularMax + diffuseMax) <= 1.0
+
+        if (i.wo.z > 0 && i.wi.z > 0) //front-facing test
+        {
+            float cosAlpha = glm::dot(reflect(i.wi), i.wo );
+            float cosTheta = i.wi.z;
+            cosAlpha = cosAlpha>0? pow(cosAlpha, exp) : 0;
+            val = diffuseColor * INV_PI + specularColor * ( exp + 2.f ) * INV_TWOPI * cosAlpha;
+            val *= cosTheta; // foreshortening factor
+        }
 
         return val;
     }

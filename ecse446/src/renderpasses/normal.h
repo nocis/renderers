@@ -98,6 +98,7 @@ struct NormalPass : RenderPass {
             glBindVertexArray( 0 );
         }
 
+        // save pixel
         RenderPass::render();
     }
 

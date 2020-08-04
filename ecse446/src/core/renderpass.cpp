@@ -21,6 +21,7 @@ bool RenderPass::init(const Config& config) {
 
     // Create matrices
     modelMat = glm::scale(glm::mat4(1.f), glm::vec3(1.f));
+    // transpose inverse for normal
     normalMat = glm::transpose(glm::inverse(modelMat));
 
     // Camera

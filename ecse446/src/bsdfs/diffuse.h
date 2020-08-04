@@ -38,6 +38,17 @@ struct DiffuseBSDF : BSDF {
         v3f val(0.f);
 
         // TODO(A2): Implement this
+        // wi and wo are localized normalized direction vectors
+        // wo : reflectance direction, -ray.d
+        // wi : incident light direction, light.d
+        if (i.wo.z > 0 && i.wi.z > 0)
+        {
+            // frameNs : vertices normal interpolation among barycentric coordinates
+            // frameNg : triangle normal
+            v3f localNormal = glm::normalize(i.frameNs.n);
+            val = albedo->eval(worldData, i) / M_PI * i.wi.z;
+            // cosTheta = glm::dot( i.wi, localNormal ) == i.wi.z
+        }
 
         return val;
     }
