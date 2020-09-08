@@ -265,9 +265,76 @@ struct DirectIntegrator : Integrator {
     v3f renderMIS(const Ray& ray, Sampler& sampler) const {
 
         v3f Lr(0.f);
+        v3f LM(0.f), LE(0.f);
 
+        float wm, we;
+
+        SurfaceInteraction info;
         // TODO(A4): Implement this
 
+        if ( scene.bvh->intersect(ray, info) )
+        {
+            if (getEmission( info )!=v3f(0))
+                return getEmission(info);
+
+            for ( size_t i = 0; i < m_emitterSamples; i++ )
+            {
+                float samplePdf;
+                v3f rayDir;
+
+                float emitterPdf;
+                size_t id = selectEmitter(sampler.next(), emitterPdf);
+                const Emitter& em = getEmitterByID(id);
+                const v3f emitterCenter = scene.getShapeCenter(em.shapeID);
+                float emitterRadius = scene.getShapeRadius(em.shapeID);
+
+                v3f wiW;
+
+                sampleSphereBySolidAngle(sampler.next2D(), info.p, emitterCenter, emitterRadius, wiW, samplePdf);
+
+                info.wi = normalize(info.frameNs.toLocal(wiW));
+
+                SurfaceInteraction shadowInfo;
+                Ray shadowRay(info.p, normalize(wiW), Epsilon);
+                if ( scene.bvh->intersect(shadowRay, shadowInfo) && shadowInfo.shapeID==em.shapeID )
+                {
+                    v3f lightIntense = getEmission( shadowInfo );
+                    v3f bsdf = getBSDF(info)->eval(info);
+                    we = balanceHeuristic(m_emitterSamples, samplePdf * emitterPdf, m_bsdfSamples, getBSDF(info)->pdf(info));
+                    LE += bsdf * lightIntense / samplePdf / emitterPdf * we;
+                }
+            }
+
+            for ( size_t i = 0; i < m_bsdfSamples; i++ )
+            {
+                float pdf;
+                v3f bsdf = getBSDF(info)->sample(info, sampler, &pdf);
+                float cosTheta = info.wi.z;
+                Ray lightRay(info.p, normalize(info.frameNs.toWorld(info.wi)), Epsilon);
+
+                SurfaceInteraction emitterInfo;
+
+                if ( scene.bvh->intersect(lightRay, emitterInfo) && getEmission( emitterInfo )!=v3f(0) )
+                {
+                    float samplePdf;
+                    const Emitter& em = getEmitterByID(int(getEmitterIDByShapeID(emitterInfo.shapeID)));
+                    float emitterRadius = scene.getShapeRadius(em.shapeID);
+                    v3f emitterCenter = scene.getShapeCenter(em.shapeID);
+                    float dist = distance(emitterCenter, info.p);
+                    float cosThetaMax = sqrt(pow(dist, 2) - pow(emitterRadius, 2)) / dist;
+                    samplePdf = Warp::squareToUniformConePdf(cosThetaMax);
+
+                    wm = balanceHeuristic(m_bsdfSamples, pdf, m_emitterSamples, samplePdf * 1.f / scene.emitters.size());
+                    v3f lightIntense = getEmission( emitterInfo );
+                    LM += bsdf * lightIntense / pdf * wm;
+                }
+            }
+        }
+        if (m_emitterSamples)
+            Lr += LE / m_emitterSamples;
+        
+        if (m_bsdfSamples)
+            Lr += LM / m_bsdfSamples;
         return Lr;
     }
 
