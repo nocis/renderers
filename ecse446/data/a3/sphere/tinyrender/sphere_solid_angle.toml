@@ -17,4 +17,4 @@ realtime = false
 emitterSamples = 1
 bsdfSamples = 0
 samplingStrategy = "solidAngle"
-spp = 1
+spp = 4

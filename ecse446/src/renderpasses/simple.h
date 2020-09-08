@@ -90,6 +90,11 @@ struct SimplePass : RenderPass {
             //   this->lightPos
             //   this->lightIntensity
             // TODO(A2): Implement this
+            GLuint lightPosition = GLuint(glGetUniformLocation(obj.shaderID, "lightPos"));
+            GLuint lightIntens = GLuint(glGetUniformLocation(obj.shaderID, "lightIntensity"));
+
+            glUniform3f(lightPosition, this->lightPos.x, this->lightPos.y, this->lightPos.z);
+            glUniform3f(lightIntens, this->lightIntensity.x, this->lightIntensity.y, this->lightIntensity.z);
 
             // Pass shader-specific parameters via uniforms
             //   obj.albedo
@@ -97,6 +102,21 @@ struct SimplePass : RenderPass {
             //   obj.rho_s
             //   obj.exponent
             // TODO(A2): Implement this
+            GLuint albPos = GLuint(glGetUniformLocation(obj.shaderID, "albedo"));
+            GLuint rho_dPos = GLuint(glGetUniformLocation(obj.shaderID, "rho_d"));
+            GLuint rho_sPos = GLuint(glGetUniformLocation(obj.shaderID, "rho_s"));
+            GLuint expPos = GLuint(glGetUniformLocation(obj.shaderID, "exponent"));
+
+            if (obj.shaderIdx == DIFFUSE_SHADER_IDX)
+            {
+                glUniform3f(albPos, obj.albedo.x, obj.albedo.y, obj.albedo.z);
+            }
+            else if (obj.shaderIdx == PHONG_SHADER_IDX)
+            {
+                glUniform3f(rho_dPos, obj.rho_d.x, obj.rho_d.y, obj.rho_d.z);
+                glUniform3f(rho_sPos, obj.rho_s.x, obj.rho_s.y, obj.rho_s.z);
+                glUniform1f(expPos, obj.exponent);
+            }
 
             // Draw
             /**
@@ -105,6 +125,9 @@ struct SimplePass : RenderPass {
              * 3) Bind vertex array to 0.
              */
             // TODO(A2): Implement this
+            glBindVertexArray( obj.vao );
+            glDrawArrays( GL_TRIANGLES,0, obj.nVerts );
+            glBindVertexArray(0);
         }
 
         RenderPass::render();

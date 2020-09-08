@@ -113,7 +113,7 @@ struct PhongBSDF : BSDF {
             float cosAlpha = glm::dot(reflect(i.wi), i.wo );
             float cosTheta = i.wi.z;
             cosAlpha = cosAlpha>0? pow(cosAlpha, exp) : 0;
-            val = diffuseColor * INV_PI + specularColor * ( exp + 2.f ) * INV_TWOPI * cosAlpha;
+            val = /*diffuseColor * INV_PI + */specularColor * ( exp + 2.f ) * INV_TWOPI * cosAlpha;
             val *= cosTheta; // foreshortening factor
         }
 
@@ -124,15 +124,45 @@ struct PhongBSDF : BSDF {
         float pdf = 0.f;
 
         // TODO(A3): Implement this
+        float exp = exponent->eval(worldData,i);
+        v3f wr = normalize(i.frameNs.toWorld(reflect(i.wo)));
+        Frame lobe(wr);
+        v3f dir = lobe.toLocal(i.frameNs.toWorld(i.wi));
 
+        pdf = Warp::squareToPhongLobePdf(dir, exp);
         return pdf;
     }
 
-    v3f sample(SurfaceInteraction& i, Sampler& sampler, float* pdf) const override {
+    v3f sample(SurfaceInteraction& i, Sampler& sampler, float* _pdf) const override {
         v3f val(0.f);
 
         // TODO(A3): Implement this
 
+        float exp = exponent->eval(worldData,i);
+        v3f wr = normalize(i.frameNs.toWorld(reflect(i.wo)));
+        Frame lobe(wr);
+
+        // weighted example:
+        //     spec / 60 + diff / 40 = ( spec / (60 / 100) + diff / (40 / 100) ) / 100
+
+        if (sampler.next() <= specularSamplingWeight)
+        {
+            v3f dir = lobe.toWorld(Warp::squareToPhongLobe(sampler.next2D(), exp));
+            i.wi = normalize(i.frameNs.toLocal(dir));
+            *_pdf = pdf(i);
+            val = eval(i) / specularSamplingWeight;
+        }
+        else
+        {
+            i.wi = normalize(Warp::squareToCosineHemisphere(sampler.next2D()));
+            *_pdf = Warp::squareToCosineHemispherePdf(i.wi);
+            if (i.wo.z > 0 && i.wi.z > 0)
+            {
+                float cosTheta = i.wi.z;
+                val = diffuseReflectance->eval(worldData, i) * scale * INV_PI * cosTheta;
+                val /= (1.0-specularSamplingWeight);
+            }
+        }
         return val;
     }
 

@@ -14,7 +14,7 @@ height = 400
 [renderer]
 type = "direct"
 realtime = false
-emitterSamples = 0
+emitterSamples = 4
 bsdfSamples = 4
 samplingStrategy = "cosineHemisphere"
 spp = 1

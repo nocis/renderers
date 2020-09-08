@@ -43,6 +43,8 @@
 #include <renderpasses/gi.h>
 #include <bsdfs/mixture.h>
 
+#include <renderpasses/ssao.h>
+
 
 TR_NAMESPACE_BEGIN
 
@@ -74,6 +76,10 @@ bool Renderer::init(const bool isRealTime, bool nogui) {
 
         else if (scene.config.renderpass == EGIRenderPass) {
             renderpass = std::unique_ptr<GIPass>(new GIPass(scene));
+        }
+
+        else if (scene.config.renderpass == ESSAORenderPass) {
+            renderpass = std::unique_ptr<SSAOPass>(new SSAOPass(scene));
         }
         else {
             throw std::runtime_error("Invalid renderpass type");
@@ -159,6 +165,7 @@ void Renderer::render() {
 
         // 10. clean up : delete VAO and VBO for each object
 
+        // gl_Position : default NDC coordinates, only vertices are between [-1,1] can be draw.
 
         while(true)
         {
@@ -203,6 +210,9 @@ void Renderer::render() {
         // very important! translation is meaningless to vector, which implicit homogeneous w coordinate is zero
         // it also means we only require inverse basis transformation to transform a vector from camera to world!!!
         // so using transpose of lookup matrix instead of inverse can save computations.
+
+        // !!!!! OPENGL uses ( eye - center ) as camera direction vector!!!
+        // so objects only can be seen when the z coordinates in view space is negative !!!!!
         glm::mat4 viewMatrix = glm::lookAt( eye, at, up );
         // clear RGB buffer
         integrator->rgb->clear();

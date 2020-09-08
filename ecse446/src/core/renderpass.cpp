@@ -68,6 +68,7 @@ void RenderPass::render() {
 
     if (!isSaved) { // save first frame
         std::unique_ptr<GLfloat> data(new GLfloat[3 * nPixel]);
+        // get pixels info from videomem, and store in mem(data)
         glReadPixels(0, 0, width, height, GL_RGB, GL_FLOAT, data.get());
         isSaved = save(data.get());
     }
@@ -268,6 +269,8 @@ void RenderPass::buildVAO(size_t objectIdx) {
     glBindBuffer(GL_ARRAY_BUFFER, objects[objectIdx].vbo);
 
     // Define vertices attributes
+    // if the layout index in shader is same as the first argument in glVertexAttribPointer
+    // then the related buffer data will be passed into shader variables with corresponding location automatically
     glEnableVertexAttribArray(posAttrib);
     glEnableVertexAttribArray(normalAttrib);
     glVertexAttribPointer(posAttrib,
@@ -385,6 +388,9 @@ void RenderPass::initPostProcessShader() {
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // FBO for post-process
+    // default draw to GL_COLOR_ATTACHMENT0!!!!!!!
+    // dont need to glDrawBuffers
+
     glGenFramebuffers(1, &postprocess_fboScreen);
     glBindFramebuffer(GL_FRAMEBUFFER, postprocess_fboScreen);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, postprocess_textureColor, 0);

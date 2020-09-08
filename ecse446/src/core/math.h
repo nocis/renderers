@@ -128,54 +128,79 @@ namespace Warp {
 inline v3f squareToUniformSphere(const p2f& sample) {
     v3f v(0.f);
     // TODO(A3): Implement this
-    return v;
+    // z = 1 - 2u
+    // x = cos(2pi*v)*sqrt(1-z^2)
+    // y = sin(2pi*v)*sqrt(1-z^2)
+    float z = 1.f - 2.f * sample.x;
+    float R = (float)sqrt((1.f - z * z));
+    float p = 2 * M_PI * (sample.y);
+    float x = R * cos(p);
+    float y = R * sin(p);
+    return v3f(x, y, z);
 }
 
 inline float squareToUniformSpherePdf() {
     float pdf = 0.f;
     // TODO(A3): Implement this
-    return pdf;
+    return INV_FOURPI;
 }
 
 inline v3f squareToUniformHemisphere(const p2f& sample) {
     v3f v(0.f);
     // TODO(A3): Implement this
-    return v;
+    float z = sample.x;
+    float R = (float)sqrt((1.f - z * z));
+    float p = 2 * M_PI * (sample.y);
+    float x = R * cos(p);
+    float y = R * sin(p);
+    return v3f(x, y, z);
 }
 
 inline float squareToUniformHemispherePdf(const v3f& v) {
     float pdf = 0.f;
     // TODO(A3): Implement this
-    return pdf;
+    return INV_TWOPI;
 }
 
 inline v2f squareToUniformDiskConcentric(const p2f& sample) {
     v2f v(0.f);
     // TODO(A3): Implement this
+    float r = sqrt(sample.x);
+    float theta = 2 * M_PI * sample.y;
+    v = v2f(r * cos(theta), r * sin(theta));
     return v;
 }
 
 inline v3f squareToCosineHemisphere(const p2f& sample) {
     v3f v(0.f);
     // TODO(A3): Implement this
-    return v;
+    v2f d = squareToUniformDiskConcentric(sample);
+    float z = std::sqrt(std::max((float)0, 1 - d.x * d.x - d.y * d.y));
+    return v3f(d[0], d[1], z);
 }
 
 inline float squareToCosineHemispherePdf(const v3f& v) {
     float pdf = 0.f;
     // TODO(A3): Implement this
-    return pdf;
+    // cosTheta / pi
+    return v.z * INV_PI;
 }
 
 inline v3f squareToPhongLobe(const p2f& sample, float exponent) {
     v3f v(0.f);
     // TODO(A3): Implement this
+
+    float theta = acos(pow(1 - sample[0], 1 / (exponent + 1)));
+    float phi = 2 * M_PI * sample[1];
+
+    v = v3f(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
     return v;
 }
 
 inline float squareToPhongLobePdf(const v3f& v, float exponent) {
     float pdf = 0.f;
     // TODO(A3): Implement this
+    pdf = (exponent + 1) * pow(v.z, exponent) / (2 * M_PI);
     return pdf;
 }
 
@@ -189,12 +214,18 @@ inline v2f squareToUniformTriangle(const p2f& sample) {
 inline v3f squareToUniformCone(const p2f& sample, float cosThetaMax) {
     v3f v(0.f);
     // TODO(A3): Implement this
+    float cosTheta = (1.f - sample[0]) + sample[0] * cosThetaMax;
+    float sinTheta = sqrt(1.f - pow(cosTheta, 2));
+    float phi = sample[1] * 2 * M_PI;
+
+    v = v3f(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
     return v;
 }
 
 inline float squareToUniformConePdf(float cosThetaMax) {
     float pdf = 0.f;
     // TODO(A3): Implement this
+    pdf = 1.0 / (2 * M_PI * (1 - cosThetaMax));
     return pdf;
 }
 

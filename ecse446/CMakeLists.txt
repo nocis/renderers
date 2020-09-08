@@ -48,7 +48,7 @@ include_directories("externals/")
 include_directories("externals/glm/")
 
 file(GLOB_RECURSE srcs src/*.cpp src/*.h)
-add_executable(tinyrender ${srcs})
+add_executable(tinyrender ${srcs} src/renderpasses/ssao.h)
 
 if(WIN32)
     target_link_libraries(tinyrender ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} SDL2::SDL2 SDL2::SDL2main)

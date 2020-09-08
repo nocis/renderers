@@ -95,7 +95,7 @@ struct NormalPass : RenderPass {
 
             glBindVertexArray( object.vao );
             glDrawArrays( GL_TRIANGLES,0, object.nVerts );
-            glBindVertexArray( 0 );
+            glBindVertexArray(0);
         }
 
         // save pixel

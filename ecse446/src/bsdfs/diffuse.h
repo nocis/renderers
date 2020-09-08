@@ -41,6 +41,7 @@ struct DiffuseBSDF : BSDF {
         // wi and wo are localized normalized direction vectors
         // wo : reflectance direction, -ray.d
         // wi : incident light direction, light.d
+        // both wi and wo point out from intersection point!!!!
         if (i.wo.z > 0 && i.wi.z > 0)
         {
             // frameNs : vertices normal interpolation among barycentric coordinates
@@ -58,14 +59,17 @@ struct DiffuseBSDF : BSDF {
 
         // TODO(A3): Implement this
 
-        return pdf;
+        return Warp::squareToCosineHemispherePdf(i.wi);;
     }
 
-    v3f sample(SurfaceInteraction& i, Sampler& sampler, float* pdf) const override {
+    v3f sample(SurfaceInteraction& i, Sampler& sampler, float* _pdf) const override {
         v3f val(0.f);
 
         // TODO(A3): Implement this
+        i.wi = normalize(Warp::squareToCosineHemisphere(sampler.next2D()));
 
+        *_pdf = pdf(i);
+        val = eval(i);
         return val;
     }
 
